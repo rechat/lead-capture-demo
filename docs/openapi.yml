@@ -1,0 +1,83 @@
+openapi: 3.0.3
+
+info:
+  version: latest
+  title: Rechat Lead capture APIs
+  description: >-
+    Contact [Rechat's support
+    team](https://help.rechat.com/appendix/contacting-support) to obtain your
+    unique endpoint URL.
+
+externalDocs:
+  description: Find out more about integrating lead capture functionality into your website
+  url: https://help.rechat.com/appendix/brokerage-set-up/lead-capture
+
+servers:
+  - url: https://api.rechat.com
+
+paths:
+  /leads/channels/{unique_endpoint_id}/webhook:
+    post:
+      summary: Represent a rechat lead capture integration (webhook)
+      description: |
+        This resource represents lead capture functionality on your website 
+      requestBody:
+        description: >-
+          The Rechat API accepts lead data in JSON, XML (LTS format), or
+          URL-encoded formats. For this example, we'll use a JSON payload with
+          the following potential fields
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadCapturePayload'
+      operationId: leadCaptureIntegration
+      parameters:
+        - name: unique_endpoint_id
+          in: path
+          description: Your unique endpoint URL
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successful operation
+
+components:
+  schemas:
+    LeadCapturePayload:
+      title: Potential fields for the Rechat lead capture JSON payload
+      type: object
+      properties:
+        first_name:
+          type: string
+          description: Optional first_name field
+        last_name:
+          type: string
+          description: Optional last_name field
+        email:
+          type: string
+          description: Optional email field
+        phone_number:
+          type: string
+          description: Optional phone_number field
+        tag:
+          type: string
+          description: Optional tag field
+        lead_source:
+          type: string
+          description: Optional lead_source field
+        note:
+          type: string
+          description: Optional note field
+        address:
+          type: string
+          description: Optional address field
+        referer_url:
+          type: string
+          description: Optional referer_url field
+        mlsid:
+          type: string
+          description: Optional mlsid field
+        agent_mlsid:
+          type: string
+          description: Optional agent_mlsid field
