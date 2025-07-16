@@ -69,8 +69,9 @@ All fields are optional according to the API specification. The app will only se
 
 ## Documentation
 
-See the `docs/` folder for:
-- `openapi.yml` - Complete API specification for the Rechat Lead Capture API
+See the [`docs/`](/docs/) folder for:
+
+- [`openapi.yml`](/docs/openapi.yml) - Complete API specification for the Rechat Lead Capture API
 
 ## Contact Rechat
 
