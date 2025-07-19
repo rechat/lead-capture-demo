@@ -1,37 +1,52 @@
 "use server"
 
+interface Assignee {
+  email: string
+  phone_number: string
+  first_name: string
+  last_name: string
+  mls: string
+  mls_id: string
+}
+
 interface LeadFormData {
   uniqueEndpointId: string
   firstName: string
   lastName: string
   email: string
   phoneNumber: string
-  tag: string
+  tags: string[]
   leadSource: string
   note: string
   address: string
   refererUrl: string
-  mlsid: string
-  agentMlsid: string
+  assignees: Assignee[]
 }
 
 export async function submitLeadCapture(formData: LeadFormData) {
   const endpoint = `https://api.rechat.com/leads/channels/${formData.uniqueEndpointId}/webhook`
 
   try {
-    const payload: Record<string, string> = {}
+    const payload: Record<string, any> = {}
 
     if (formData.firstName) payload.first_name = formData.firstName
     if (formData.lastName) payload.last_name = formData.lastName
     if (formData.email) payload.email = formData.email
     if (formData.phoneNumber) payload.phone_number = formData.phoneNumber
-    if (formData.tag) payload.tag = formData.tag
+    if (formData.tags && formData.tags.length > 0) payload.tag = formData.tags
     if (formData.leadSource) payload.lead_source = formData.leadSource
     if (formData.note) payload.note = formData.note
     if (formData.address) payload.address = formData.address
     if (formData.refererUrl) payload.referer_url = formData.refererUrl
-    if (formData.mlsid) payload.mlsid = formData.mlsid
-    if (formData.agentMlsid) payload.agent_mlsid = formData.agentMlsid
+    if (formData.assignees && formData.assignees.length > 0) {
+      // Filter out empty assignees
+      const validAssignees = formData.assignees.filter(
+        (assignee) => assignee.email || assignee.phone_number || assignee.first_name || assignee.last_name,
+      )
+      if (validAssignees.length > 0) {
+        payload.assignees = validAssignees
+      }
+    }
 
     console.log("Submitting to endpoint:", endpoint)
     console.log("Payload:", JSON.stringify(payload, null, 2))
@@ -56,6 +71,7 @@ export async function submitLeadCapture(formData: LeadFormData) {
           message: "Lead submitted successfully",
           statusCode: 204,
           endpoint: endpoint,
+          payload: payload,
         },
       }
     }
@@ -84,6 +100,7 @@ export async function submitLeadCapture(formData: LeadFormData) {
           statusCode: response.status,
           response: responseData,
           endpoint: endpoint,
+          payload: payload,
         },
       }
     } else {
