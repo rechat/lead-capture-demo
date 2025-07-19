@@ -30,30 +30,34 @@ A simple form application to test the Rechat Lead Capture API integration with a
 ### Local Development
 
 1. Install dependencies:
-\`\`\`bash
+
+```bash
 npm install
-\`\`\`
+```
 
-2. Run the development server:
-\`\`\`bash
+1. Run the development server:
+
+```bash
 npm run dev
-\`\`\`
+```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser
+1. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ### Docker
 
 1. Build the Docker image:
-\`\`\`bash
+
+```bash
 docker build -t rechat-lead-demo .
-\`\`\`
+```
 
-2. Run the container:
-\`\`\`bash
+1. Run the container:
+
+```bash
 docker run -p 3000:3000 rechat-lead-demo
-\`\`\`
+```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser
+1. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Configuration
 
