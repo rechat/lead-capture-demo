@@ -105,11 +105,11 @@ paths:
         '204':
           description: Successful operation
     parameters:
-      - schema:
-          type: string
-        name: lead_channel
+      - name: lead_channel
         in: path
         required: true
+        schema:
+          type: string
 components:
   schemas:
     LeadCapturePayload:
