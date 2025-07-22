@@ -1,83 +1,199 @@
 openapi: 3.0.3
-
 info:
   version: latest
-  title: Rechat Lead capture APIs
-  description: >-
-    Contact [Rechat's support
-    team](https://help.rechat.com/appendix/contacting-support) to obtain your
-    unique endpoint URL.
-
+  title: Rechat Lead Capture API
+  description: |
+    Get your `lead_cannel` ID through Rechat's [Lead Routing](https://help.rechat.com/guides/crm/contacts/adding-contacts/lead-routing) interface.
+  termsOfService: 'https://rechat.com/terms-of-service/'
+  contact:
+    name: Rechat Support
+    url: 'https://help.rechat.com/appendix/contacting-support'
+    email: support@rechat.com
+tags:
+  - name: Lead Capture
+    description: Integrate Rechat's lead capture functionality into your website.
 externalDocs:
-  description: Find out more about integrating lead capture functionality into your website
-  url: https://help.rechat.com/appendix/brokerage-set-up/lead-capture
-
+  description: Find out more about integrating lead capture functionality into your website.
+  url: 'https://help.rechat.com/appendix/brokerage-set-up/lead-capture'
 servers:
-  - url: https://api.rechat.com
-
+  - url: 'https://api.rechat.com'
 paths:
-  /leads/channels/{unique_endpoint_id}/webhook:
+  '/leads/channels/{lead_channel}/webhook':
     post:
-      summary: Represent a rechat lead capture integration (webhook)
+      summary: Capture leads using a known lead channel ID (webhook).
+      tags:
+        - Lead Capture
+      parameters:
+        - in: path
+          name: lead_channel
+          schema:
+            type: string
+          required: true
+          description: |
+            Your lead channel ID. This serves as both the endpoint identifier and authentication key.
+          example: 55f50bdd-fc93-4737-84e4-6fa5ad97745f # Example of lead_channel id.
       description: |
-        This resource represents lead capture functionality on your website 
+        Integrate Rechat's lead capture functionality into your website.
       requestBody:
-        description: >-
-          The Rechat API accepts lead data in JSON, XML (LTS format), or
-          URL-encoded formats. For this example, we'll use a JSON payload with
-          the following potential fields
+        description: |
+          The Rechat API accepts lead data in JSON, XML (LTS format), or URL-encoded formats. For this example, we'll use a JSON payload with the following potential fields, such as those that might be captured in a website form.
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/LeadCapturePayload'
       operationId: leadCaptureIntegration
-      parameters:
-        - name: unique_endpoint_id
-          in: path
-          description: Your unique endpoint URL
-          required: true
-          schema:
-            type: string
       responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: OK
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 0e17f1d9-b9cb-4732-9185-fd80f990f693
+                      contact:
+                        type: string
+                        example: 2ba538ee-3f2c-4ecb-b87e-a706b5c3e73f
+                      lead_channel:
+                        type: string
+                        example: 55f50bdd-fc93-4737-84e4-6fa5ad97745f
+                      raw_payload:
+                        type: object
+                        properties:
+                          first_name:
+                            type: string
+                            example: Test
+                          last_name:
+                            type: string
+                            example: User
+                          email:
+                            type: string
+                            example: test@user.example
+                          source_type:
+                            type: string
+                            example: Website
+                      parsed_payload:
+                        type: object
+                        properties:
+                          first_name:
+                            type: string
+                            example: Test
+                          last_name:
+                            type: string
+                            example: User
+                          email:
+                            type: string
+                            example: test@user.example
+                          source_type:
+                            type: string
+                            example: Website
+                      source_type:
+                        type: string
+                        example: Website
+                      created_at:
+                        type: number
+                        example: 1752247298.819
         '204':
           description: Successful operation
-
+    parameters:
+      - name: lead_channel
+        in: path
+        required: true
+        schema:
+          type: string
 components:
   schemas:
     LeadCapturePayload:
-      title: Potential fields for the Rechat lead capture JSON payload
+      title: Example Rechat lead capture JSON payload
       type: object
+      description: |
+        Example JSON payload for Rechats lead capture API. All fields are optional with this exception of `source_type`, which must be specified.
       properties:
         first_name:
           type: string
-          description: Optional first_name field
+          description: Contact's first name (optional)
+          example: John
         last_name:
           type: string
-          description: Optional last_name field
+          description: Contact's last name (optional)
+          example: Doe
         email:
           type: string
-          description: Optional email field
+          description: Contact's email (optional)
+          example: john.doe@example.com
         phone_number:
           type: string
-          description: Optional phone_number field
-        tag:
-          type: string
-          description: Optional tag field
+          description: Contact's phone number (optional)
+          example: (555) 123-4567
+        tags:
+          type: array
+          items:
+            type: string
+          description: An array of strings to be used as tags for categorization (optional)
+          example:
+            - website_inquiry
+            - new_leads
         lead_source:
           type: string
-          description: Optional lead_source field
+          description: Source of the lead (optional)
+          example: real_estate_website
         note:
           type: string
-          description: Optional note field
+          description: Additional notes or messages (optional)
+          example: This is a note!
         address:
           type: string
-          description: Optional address field
+          description: Property address of interest (optional)
+          example: '123 Main Street, City, State 12345'
         referer_url:
           type: string
-          description: Optional referer_url field
+          description: Referring URL (optional)
+          example: 'https://example.com/property/123'
         mlsid:
           type: string
-          description: Optional mlsid field
+          description: MLS listing ID (optional)
+          example: 22425783
         agent_mlsid:
           type: string
-          description: Optional agent_mlsid field
+          description: Agent's MLS ID (optional)
+          example: 12345678
+        source_type:
+          type: string
+          description: 'Required string representing the source type (Website, in this case).'
+          example: Website
+        assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assignee'
+          description: Optional array of assignee(s) for the lead.
+    Assignee:
+      title: Assignee
+      type: object
+      properties:
+        email:
+          type: string
+          description: Optional assignee email.
+        phone_number:
+          type: string
+          description: Optional phone_number field.
+        first_name:
+          type: string
+          description: Optional first_name field.
+        last_name:
+          type: string
+          description: Optional last_name field.
+        mls:
+          type: string
+          description: Optional mls field.
+        mls_id:
+          type: string
+          description: Optional mls_id field.
