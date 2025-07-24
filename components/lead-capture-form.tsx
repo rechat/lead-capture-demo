@@ -23,7 +23,7 @@ interface Assignee {
 }
 
 interface LeadFormData {
-  uniqueEndpointId: string
+  leadChannel: string
   firstName: string
   lastName: string
   email: string
@@ -37,7 +37,7 @@ interface LeadFormData {
 }
 
 const defaultFormData: LeadFormData = {
-  uniqueEndpointId: "54a57918-ad9b-4adb-a35a-9232bf78d734",
+  leadChannel: "54a57918-ad9b-4adb-a35a-9232bf78d734",
   firstName: "",
   lastName: "",
   email: "",
@@ -225,13 +225,13 @@ export function LeadCaptureForm() {
           <div className="border-b pb-6">
             <h3 className="text-lg font-semibold mb-4 text-gray-900">API Configuration</h3>
             <div className="space-y-2">
-              <Label htmlFor="uniqueEndpointId">Unique Endpoint ID</Label>
+              <Label htmlFor="leadChannel">Lead Channel ID</Label>
               <Input
-                id="uniqueEndpointId"
+                id="leadChannel"
                 type="text"
-                value={formData.uniqueEndpointId}
-                onChange={(e) => handleInputChange("uniqueEndpointId", e.target.value)}
-                placeholder="Your unique endpoint ID"
+                value={formData.leadChannel}
+                onChange={(e) => handleInputChange("leadChannel", e.target.value)}
+                placeholder="Your Lead Channel ID"
               />
               <p className="text-sm text-gray-500">
                 This serves as both the endpoint identifier and authentication key

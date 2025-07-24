@@ -10,7 +10,7 @@ interface Assignee {
 }
 
 interface LeadFormData {
-  uniqueEndpointId: string
+  leadChannel: string
   firstName: string
   lastName: string
   email: string
@@ -24,7 +24,7 @@ interface LeadFormData {
 }
 
 export async function submitLeadCapture(formData: LeadFormData) {
-  const endpoint = `https://api.rechat.com/leads/channels/${formData.uniqueEndpointId}/webhook`
+  const endpoint = `https://api.rechat.com/leads/channels/${formData.leadChannel}/webhook`
 
   try {
     const payload: Record<string, any> = {}
