@@ -3,7 +3,9 @@ info:
   version: latest
   title: Rechat Lead Capture API
   description: |
-    Get your `lead_cannel` ID through Rechat's [Lead Routing](https://help.rechat.com/guides/crm/contacts/adding-contacts/lead-routing) interface.
+    Integrate lead-capture functionality into your website allowing for seamless collection of lead data through Rechat's API. 
+    
+    Get your `lead_cannel` ID through Rechat's [**Lead Routing**](https://help.rechat.com/guides/crm/contacts/adding-contacts/lead-routing) interface.
   termsOfService: 'https://rechat.com/terms-of-service/'
   contact:
     name: Rechat Support
@@ -33,7 +35,7 @@ paths:
             Your lead channel ID. This serves as both the endpoint identifier and authentication key.
           example: 55f50bdd-fc93-4737-84e4-6fa5ad97745f # Example of lead_channel id.
       description: |
-        Integrate Rechat's lead capture functionality into your website.
+        Integrate Rechat's lead capture functionality into your website using your `lead_channel` id (which you can get through Rechat's [**Lead Routing**](https://help.rechat.com/guides/crm/contacts/adding-contacts/lead-routing) interface).
       requestBody:
         description: |
           The Rechat API accepts lead data in JSON, XML (LTS format), or URL-encoded formats. For this example, we'll use a JSON payload with the following potential fields, such as those that might be captured in a website form.
