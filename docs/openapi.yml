@@ -103,6 +103,9 @@ paths:
                         example: Website
                       created_at:
                         type: number
+                        format: double
+                        description: |
+                          Unix timestamp representing creation time, including fractional seconds since the Unix epoch (January 1, 1970 UTC)
                         example: 1752247298.819
         '204':
           description: Successful operation
