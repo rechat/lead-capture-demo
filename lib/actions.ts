@@ -9,6 +9,29 @@ interface Assignee {
   mls_id: string
 }
 
+interface Address {
+  building?: string | null
+  house_num?: string | null
+  predir?: string | null
+  qual?: string | null
+  pretype?: string | null
+  name?: string | null
+  suftype?: string | null
+  sufdir?: string | null
+  ruralroute?: string | null
+  extra?: string | null
+  city?: string | null
+  state?: string | null
+  county?: string | null
+  country?: string | null
+  postcode?: string | null
+  box?: string | null
+  unit?: string | null
+  line1?: string | null
+  line2?: string | null
+  full?: string | null
+}
+
 interface LeadFormData {
   leadChannel: string
   firstName: string
@@ -18,7 +41,7 @@ interface LeadFormData {
   tags: string[]
   leadSource: string
   note: string
-  address: string
+  address: Address
   refererUrl: string
   assignees: Assignee[]
 }
@@ -36,7 +59,15 @@ export async function submitLeadCapture(formData: LeadFormData) {
     if (formData.tags && formData.tags.length > 0) payload.tag = formData.tags
     if (formData.leadSource) payload.lead_source = formData.leadSource
     if (formData.note) payload.note = formData.note
-    if (formData.address) payload.address = formData.address
+    if (formData.address && Object.keys(formData.address).length > 0) {
+      // Only include non-null address fields
+      const addressFields = Object.fromEntries(
+        Object.entries(formData.address).filter(([_, value]) => value !== null && value !== "")
+      )
+      if (Object.keys(addressFields).length > 0) {
+        payload.address = addressFields
+      }
+    }
     if (formData.refererUrl) payload.referer_url = formData.refererUrl
     if (formData.assignees && formData.assignees.length > 0) {
       // Filter out empty assignees

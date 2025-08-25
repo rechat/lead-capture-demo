@@ -22,6 +22,29 @@ interface Assignee {
   mls_id: string
 }
 
+interface Address {
+  building?: string | null
+  house_num?: string | null
+  predir?: string | null
+  qual?: string | null
+  pretype?: string | null
+  name?: string | null
+  suftype?: string | null
+  sufdir?: string | null
+  ruralroute?: string | null
+  extra?: string | null
+  city?: string | null
+  state?: string | null
+  county?: string | null
+  country?: string | null
+  postcode?: string | null
+  box?: string | null
+  unit?: string | null
+  line1?: string | null
+  line2?: string | null
+  full?: string | null
+}
+
 interface LeadFormData {
   leadChannel: string
   firstName: string
@@ -31,7 +54,7 @@ interface LeadFormData {
   tags: string[]
   leadSource: string
   note: string
-  address: string
+  address: Address
   refererUrl: string
   assignees: Assignee[]
 }
@@ -45,7 +68,7 @@ const defaultFormData: LeadFormData = {
   tags: ["website_inquiry"],
   leadSource: "real_estate_website",
   note: "",
-  address: "",
+  address: {},
   refererUrl: "",
   assignees: [],
 }
@@ -99,6 +122,7 @@ export function LeadCaptureForm() {
   const [errorMessage, setErrorMessage] = useState("")
   const [responseData, setResponseData] = useState<any>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [showAddress, setShowAddress] = useState(false)
 
   // ---------- load data from hash on mount ----------
   useEffect(() => {
@@ -130,8 +154,18 @@ export function LeadCaptureForm() {
   }, [formData, isInitialized])
   // ------------------------------------------------------
 
-  const handleInputChange = (field: keyof Omit<LeadFormData, "tags" | "assignees">, value: string) => {
+  const handleInputChange = (field: keyof Omit<LeadFormData, "tags" | "assignees" | "address">, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleAddressChange = (field: keyof Address, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        [field]: value || null,
+      },
+    }))
   }
 
   const addTag = () => {
@@ -242,7 +276,7 @@ export function LeadCaptureForm() {
           {/* Contact Information */}
           <div className="border-b pb-6">
             <h3 className="text-lg font-semibold mb-4 text-gray-900">Contact Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
@@ -283,6 +317,180 @@ export function LeadCaptureForm() {
                   placeholder="(555) 123-4567"
                 />
               </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Address</Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowAddress(!showAddress)}
+                >
+                  <Plus className={`h-4 w-4 mr-1 ${showAddress ? 'rotate-45' : ''}`} />
+                  {showAddress ? 'Hide Address' : 'Add Address'}
+                </Button>
+              </div>
+              
+              {showAddress && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="building">Building</Label>
+                      <Input
+                        id="building"
+                        type="text"
+                        value={formData.address.building || ""}
+                        onChange={(e) => handleAddressChange("building", e.target.value)}
+                        placeholder="Apt, Suite, etc."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="house_num">House Number</Label>
+                      <Input
+                        id="house_num"
+                        type="text"
+                        value={formData.address.house_num || ""}
+                        onChange={(e) => handleAddressChange("house_num", e.target.value)}
+                        placeholder="123"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="predir">Pre-directional</Label>
+                      <Input
+                        id="predir"
+                        type="text"
+                        value={formData.address.predir || ""}
+                        onChange={(e) => handleAddressChange("predir", e.target.value)}
+                        placeholder="N, South, etc."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Street Name</Label>
+                      <Input
+                        id="name"
+                        type="text"
+                        value={formData.address.name || ""}
+                        onChange={(e) => handleAddressChange("name", e.target.value)}
+                        placeholder="Main"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="suftype">Street Type</Label>
+                      <Input
+                        id="suftype"
+                        type="text"
+                        value={formData.address.suftype || ""}
+                        onChange={(e) => handleAddressChange("suftype", e.target.value)}
+                        placeholder="St, Ave, Blvd"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sufdir">Post-directional</Label>
+                      <Input
+                        id="sufdir"
+                        type="text"
+                        value={formData.address.sufdir || ""}
+                        onChange={(e) => handleAddressChange("sufdir", e.target.value)}
+                        placeholder="NE, SW, etc."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="unit">Unit</Label>
+                      <Input
+                        id="unit"
+                        type="text"
+                        value={formData.address.unit || ""}
+                        onChange={(e) => handleAddressChange("unit", e.target.value)}
+                        placeholder="#5, Apt 2B"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        type="text"
+                        value={formData.address.city || ""}
+                        onChange={(e) => handleAddressChange("city", e.target.value)}
+                        placeholder="San Francisco"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State</Label>
+                      <Input
+                        id="state"
+                        type="text"
+                        value={formData.address.state || ""}
+                        onChange={(e) => handleAddressChange("state", e.target.value)}
+                        placeholder="CA or California"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="postcode">Postal Code</Label>
+                      <Input
+                        id="postcode"
+                        type="text"
+                        value={formData.address.postcode || ""}
+                        onChange={(e) => handleAddressChange("postcode", e.target.value)}
+                        placeholder="94102"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="county">County</Label>
+                      <Input
+                        id="county"
+                        type="text"
+                        value={formData.address.county || ""}
+                        onChange={(e) => handleAddressChange("county", e.target.value)}
+                        placeholder="San Francisco"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="country">Country</Label>
+                      <Input
+                        id="country"
+                        type="text"
+                        value={formData.address.country || ""}
+                        onChange={(e) => handleAddressChange("country", e.target.value)}
+                        placeholder="United States"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="line1">Address Line 1</Label>
+                      <Input
+                        id="line1"
+                        type="text"
+                        value={formData.address.line1 || ""}
+                        onChange={(e) => handleAddressChange("line1", e.target.value)}
+                        placeholder="123 Main St #5"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="line2">Address Line 2</Label>
+                      <Input
+                        id="line2"
+                        type="text"
+                        value={formData.address.line2 || ""}
+                        onChange={(e) => handleAddressChange("line2", e.target.value)}
+                        placeholder="San Francisco, CA 94102"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="full">Full Address</Label>
+                    <Input
+                      id="full"
+                      type="text"
+                      value={formData.address.full || ""}
+                      onChange={(e) => handleAddressChange("full", e.target.value)}
+                      placeholder="123 Main St #5, San Francisco, CA 94102"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -426,16 +634,6 @@ export function LeadCaptureForm() {
           <div>
             <h3 className="text-lg font-semibold mb-4 text-gray-900">Additional Information</h3>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="address">Property Address</Label>
-                <Input
-                  id="address"
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="123 Main St, City, State 12345"
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="refererUrl">Referer URL</Label>
                 <Input
