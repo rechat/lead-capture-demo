@@ -1,5 +1,5 @@
 # Install dependencies only when needed
-FROM node:18-alpine AS deps
+FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Install pnpm
@@ -12,7 +12,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install
 
 # Rebuild the source code only when needed
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 RUN corepack enable
 
@@ -23,7 +23,7 @@ COPY . .
 RUN pnpm run build
 
 # Production image, copy all necessary files and run the app
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 RUN corepack enable
 
