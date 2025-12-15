@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { submitLeadCapture } from "@/lib/actions"
+import { ActivityTracker } from "@/components/activity-tracker"
 import { Loader2, CheckCircle, AlertCircle, X, Plus, Minus } from "lucide-react"
 
 interface Assignee {
@@ -123,6 +124,8 @@ export function LeadCaptureForm() {
   const [responseData, setResponseData] = useState<any>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [showAddress, setShowAddress] = useState(false)
+  const [showActivityTracker, setShowActivityTracker] = useState(false)
+  const [capturedLeadId, setCapturedLeadId] = useState<string | null>(null)
 
   // ---------- load data from hash on mount ----------
   useEffect(() => {
@@ -219,6 +222,12 @@ export function LeadCaptureForm() {
       if (result.success) {
         setSubmitStatus("success")
         setResponseData(result.data)
+        
+        // Extract lead ID from response to enable activity tracking
+        const leadId = result.data?.response?.data?.id || result.data?.response?.id || result.data?.id || result.data?.lead_id
+        if (leadId) {
+          setCapturedLeadId(leadId)
+        }
       } else {
         setSubmitStatus("error")
         setErrorMessage(result.error || "Failed to submit lead")
@@ -235,6 +244,8 @@ export function LeadCaptureForm() {
     setFormData(defaultFormData)
     setSubmitStatus("idle")
     setResponseData(null)
+    setShowActivityTracker(false)
+    setCapturedLeadId(null)
     window.history.replaceState(null, "", window.location.pathname)
   }
 
@@ -664,6 +675,23 @@ export function LeadCaptureForm() {
                 <CheckCircle className="h-5 w-5" />
                 <span>Lead submitted successfully!</span>
               </div>
+              {capturedLeadId && (
+                <div className="flex items-center gap-2 bg-blue-50 p-3 rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-900">Ready to track activities!</p>
+                    <p className="text-xs text-blue-700">Lead ID: {capturedLeadId}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => setShowActivityTracker(true)}
+                    variant="outline"
+                    size="sm"
+                    className="bg-blue-100 border-blue-300 hover:bg-blue-200"
+                  >
+                    Track Activity
+                  </Button>
+                </div>
+              )}
               {responseData && (
                 <div className="bg-gray-50 p-3 rounded-md">
                   <Label className="text-sm font-medium text-gray-700">API Response:</Label>
@@ -700,6 +728,18 @@ export function LeadCaptureForm() {
           </div>
         </form>
       </CardContent>
+      
+      {/* Activity Tracker */}
+      {showActivityTracker && capturedLeadId && (
+        <CardContent className="pt-0">
+          <div className="border-t pt-6">
+            <ActivityTracker 
+              leadId={capturedLeadId}
+              onClose={() => setShowActivityTracker(false)}
+            />
+          </div>
+        </CardContent>
+      )}
     </Card>
   )
 }
