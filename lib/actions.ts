@@ -1,5 +1,3 @@
-"use server"
-
 interface Assignee {
   email: string
   phone_number: string

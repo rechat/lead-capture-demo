@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { submitLeadCapture } from "@/lib/actions"
 import { ActivityTracker } from "@/components/activity-tracker"
-import { Loader2, CheckCircle, AlertCircle, X, Plus, Minus } from "lucide-react"
+import { Loader2, CheckCircle, AlertCircle, X, Plus, Minus, ChevronDown, ChevronRight, Activity, Eye, EyeOff } from "lucide-react"
 
 interface Assignee {
   email: string
@@ -66,8 +66,8 @@ const defaultFormData: LeadFormData = {
   lastName: "",
   email: "",
   phoneNumber: "",
-  tags: ["website_inquiry"],
-  leadSource: "real_estate_website",
+  tags: ["Lead"],
+  leadSource: "Lead Capture Demo",
   note: "",
   address: {},
   refererUrl: "",
@@ -126,6 +126,7 @@ export function LeadCaptureForm() {
   const [showAddress, setShowAddress] = useState(false)
   const [showActivityTracker, setShowActivityTracker] = useState(false)
   const [capturedLeadId, setCapturedLeadId] = useState<string | null>(null)
+  const [showApiResponse, setShowApiResponse] = useState(false)
 
   // ---------- load data from hash on mount ----------
   useEffect(() => {
@@ -227,6 +228,7 @@ export function LeadCaptureForm() {
         const leadId = result.data?.response?.data?.id || result.data?.response?.id || result.data?.id || result.data?.lead_id
         if (leadId) {
           setCapturedLeadId(leadId)
+          setShowActivityTracker(true) // Automatically show activity tracker
         }
       } else {
         setSubmitStatus("error")
@@ -257,18 +259,23 @@ export function LeadCaptureForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-2xl text-center">Lead Capture API Test</CardTitle>
-        <p className="text-sm text-gray-600 text-center">
-          All fields are optional. Form data is automatically saved to the URL for easy sharing.
-        </p>
-      </CardHeader>
+    <div className="max-w-4xl mx-auto">
+      <Card className="shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+          <CardTitle className="text-3xl text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Lead Capture Demo
+          </CardTitle>
+        </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* API Configuration */}
-          <div className="border-b pb-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">API Configuration</h3>
+          <div className="border-b pb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 font-semibold text-sm">1</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">API Configuration</h3>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="leadChannel">Lead Channel ID</Label>
               <Input
@@ -284,9 +291,15 @@ export function LeadCaptureForm() {
             </div>
           </div>
 
-          {/* Contact Information */}
-          <div className="border-b pb-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Contact Information</h3>
+          {/* Lead Information */}
+          {formData.leadChannel && (
+          <div className="border-b pb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 font-semibold text-sm">2</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Lead Information</h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
@@ -326,6 +339,71 @@ export function LeadCaptureForm() {
                   value={formData.phoneNumber}
                   onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
                   placeholder="(555) 123-4567"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="space-y-2">
+                <Label htmlFor="tags">Tags</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="tags"
+                    type="text"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyPress={handleTagKeyPress}
+                    placeholder="Add a tag and press Enter"
+                  />
+                  <Button type="button" onClick={addTag} variant="outline" size="sm">
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.tags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="leadSource">Lead Source</Label>
+                <Input
+                  id="leadSource"
+                  type="text"
+                  value={formData.leadSource}
+                  onChange={(e) => handleInputChange("leadSource", e.target.value)}
+                  placeholder="Lead Capture Demo"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="refererUrl">Referer URL</Label>
+                <Input
+                  id="refererUrl"
+                  type="url"
+                  value={formData.refererUrl}
+                  onChange={(e) => handleInputChange("refererUrl", e.target.value)}
+                  placeholder="https://example.com/property/123"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="note">Note</Label>
+                <Textarea
+                  id="note"
+                  value={formData.note}
+                  onChange={(e) => handleInputChange("note", e.target.value)}
+                  placeholder="Additional notes or message..."
+                  rows={4}
                 />
               </div>
             </div>
@@ -504,58 +582,18 @@ export function LeadCaptureForm() {
               )}
             </div>
           </div>
-
-          {/* Lead Information */}
-          <div className="border-b pb-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Lead Information</h3>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="tags">Tags</Label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {formData.tags.map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    id="tags"
-                    type="text"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyPress={handleTagKeyPress}
-                    placeholder="Add a tag and press Enter"
-                  />
-                  <Button type="button" onClick={addTag} variant="outline" size="sm">
-                    Add
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="leadSource">Lead Source</Label>
-                <Input
-                  id="leadSource"
-                  type="text"
-                  value={formData.leadSource}
-                  onChange={(e) => handleInputChange("leadSource", e.target.value)}
-                  placeholder="real_estate_website"
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Assignees */}
-          <div className="border-b pb-6">
+          {formData.leadChannel && (
+          <div className="border-b pb-8">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Assignees</h3>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                  <span className="text-orange-600 font-semibold text-sm">2</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Assignees</h3>
+              </div>
               <Button type="button" onClick={addAssignee} variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-1" />
                 Add Assignee
@@ -640,62 +678,36 @@ export function LeadCaptureForm() {
               </div>
             )}
           </div>
+          )}
 
-          {/* Additional Information */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Additional Information</h3>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="refererUrl">Referer URL</Label>
-                <Input
-                  id="refererUrl"
-                  type="url"
-                  value={formData.refererUrl}
-                  onChange={(e) => handleInputChange("refererUrl", e.target.value)}
-                  placeholder="https://example.com/property/123"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="note">Note</Label>
-                <Textarea
-                  id="note"
-                  value={formData.note}
-                  onChange={(e) => handleInputChange("note", e.target.value)}
-                  placeholder="Additional notes or message..."
-                  rows={4}
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Status Messages */}
+          {/* Success Status */}
           {submitStatus === "success" && (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-md">
-                <CheckCircle className="h-5 w-5" />
-                <span>Lead submitted successfully!</span>
-              </div>
-              {capturedLeadId && (
-                <div className="flex items-center gap-2 bg-blue-50 p-3 rounded-md">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-blue-900">Ready to track activities!</p>
-                    <p className="text-xs text-blue-700">Lead ID: {capturedLeadId}</p>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => setShowActivityTracker(true)}
-                    variant="outline"
-                    size="sm"
-                    className="bg-blue-100 border-blue-300 hover:bg-blue-200"
-                  >
-                    Track Activity
-                  </Button>
+              <div className="flex items-center justify-between p-3 text-green-600 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-medium">Lead submitted successfully!</span>
+                  {capturedLeadId && (
+                    <span className="text-sm text-green-700">
+                      ID: <code className="bg-green-100 px-1 rounded text-xs">{capturedLeadId}</code>
+                    </span>
+                  )}
                 </div>
-              )}
-              {responseData && (
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <Label className="text-sm font-medium text-gray-700">API Response:</Label>
-                  <pre className="text-xs text-gray-600 mt-1 overflow-x-auto">
+                <Button
+                  type="button"
+                  onClick={() => setShowApiResponse(!showApiResponse)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-green-700 hover:bg-green-100"
+                >
+                  {showApiResponse ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              
+              {responseData && showApiResponse && (
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <pre className="text-xs text-gray-600 overflow-x-auto bg-white p-2 rounded">
                     {JSON.stringify(responseData, null, 2)}
                   </pre>
                 </div>
@@ -711,21 +723,32 @@ export function LeadCaptureForm() {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+          {formData.leadChannel && (
+          <div className="flex gap-3 pt-6">
+            <Button 
+              type="submit" 
+              className="flex-1 h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Submitting Lead...
                 </>
               ) : (
-                "Submit Lead"
+                "Submit Lead to Rechat"
               )}
             </Button>
-            <Button type="button" variant="outline" onClick={clearForm} className="bg-transparent">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={clearForm} 
+              className="h-12 px-6 hover:bg-gray-50"
+            >
               Clear Form
             </Button>
           </div>
+          )}
         </form>
       </CardContent>
       
@@ -741,5 +764,6 @@ export function LeadCaptureForm() {
         </CardContent>
       )}
     </Card>
+    </div>
   )
 }

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, CheckCircle, AlertCircle, X } from "lucide-react"
+import { Loader2, CheckCircle, AlertCircle, X, Activity } from "lucide-react"
 
 type ActivityType = 
   | "ContactViewedListing"
@@ -193,41 +193,55 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl">Track Activity for Lead</CardTitle>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+    <Card className="w-full border-2 border-blue-200">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Activity className="h-5 w-5 text-blue-600" />
+            Activity Tracker
+          </CardTitle>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="bg-blue-50 p-3 rounded-md">
-          <p className="text-sm text-blue-700">
-            <strong>Lead ID:</strong> {leadId}
-          </p>
-          <p className="text-xs text-blue-600 mt-1">
-            You can now send activities for this captured lead to track their behavior and engagement.
-          </p>
+      <CardContent className="space-y-4 pt-0">
+        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span className="text-sm font-medium text-green-900">Lead ID:</span>
+            <code className="bg-green-100 px-1 rounded text-xs">{leadId}</code>
+          </div>
         </div>
 
         {/* Activity Type Selection */}
-        <div className="space-y-2">
-          <Label>Activity Type</Label>
-          <Select value={selectedActivity} onValueChange={(value) => setSelectedActivity(value as ActivityType)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select an activity type..." />
-            </SelectTrigger>
-            <SelectContent>
-              {activityOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  <div>
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500">{option.description}</div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-3">
+          <Label className="text-base font-semibold">Choose Activity Type</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {activityOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setSelectedActivity(option.value)}
+                className={`p-4 text-left border rounded-lg transition-all hover:shadow-md ${
+                  selectedActivity === option.value
+                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className={`font-medium ${
+                  selectedActivity === option.value ? 'text-blue-900' : 'text-gray-900'
+                }`}>
+                  {option.label}
+                </div>
+                <div className={`text-sm mt-1 ${
+                  selectedActivity === option.value ? 'text-blue-700' : 'text-gray-500'
+                }`}>
+                  {option.description}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Listing Details (for listing-related activities) */}
@@ -402,19 +416,22 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
           <Button 
             onClick={submitActivity} 
             disabled={!selectedActivity || isSubmitting}
-            className="flex-1"
+            className="flex-1 h-12 bg-blue-600 hover:bg-blue-700"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Posting Activity...
               </>
             ) : (
-              "Post Activity"
+              <>
+                <Activity className="mr-2 h-4 w-4" />
+                Post Activity to Timeline
+              </>
             )}
           </Button>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Close
+          <Button type="button" variant="outline" onClick={onClose} className="h-12 px-6">
+            Close Tracker
           </Button>
         </div>
       </CardContent>
