@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { submitLeadCapture } from "@/lib/actions"
 import { ActivityTracker } from "@/components/activity-tracker"
-import { Loader2, CheckCircle, AlertCircle, X, Plus, Minus, ChevronDown, ChevronRight, Activity, Eye, EyeOff } from "lucide-react"
+import { Loader2, CheckCircle, AlertCircle, X, Plus, Minus, ChevronDown, ChevronRight, Activity, Eye, EyeOff, History, Clock, ChevronUp } from "lucide-react"
 
 interface Assignee {
   email: string
@@ -60,6 +60,14 @@ interface LeadFormData {
   assignees: Assignee[]
 }
 
+interface SavedLead {
+  id: string
+  name: string
+  email: string
+  timestamp: number
+  leadChannel: string
+}
+
 const defaultFormData: LeadFormData = {
   leadChannel: "54a57918-ad9b-4adb-a35a-9232bf78d734",
   firstName: "",
@@ -84,6 +92,14 @@ const defaultAssignee: Assignee = {
 }
 
 // ---------- helpers ----------
+/**
+ * Validate UUID format (version 4 or any standard UUID)
+ */
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(uuid)
+}
+
 /**
  * Encode arbitrary Unicode text to URL-safe Base64
  */
@@ -127,9 +143,14 @@ export function LeadCaptureForm() {
   const [showActivityTracker, setShowActivityTracker] = useState(false)
   const [capturedLeadId, setCapturedLeadId] = useState<string | null>(null)
   const [showApiResponse, setShowApiResponse] = useState(false)
+  const [savedLeads, setSavedLeads] = useState<SavedLead[]>([])
+  const [isApiSectionCollapsed, setIsApiSectionCollapsed] = useState(false)
+  const [isLeadInfoCollapsed, setIsLeadInfoCollapsed] = useState(false)
+  const [isChannelIdValid, setIsChannelIdValid] = useState(true)
 
-  // ---------- load data from hash on mount ----------
+  // ---------- load data from hash and localStorage on mount ----------
   useEffect(() => {
+    // Load from hash
     const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""
     if (hash) {
       try {
@@ -140,6 +161,17 @@ export function LeadCaptureForm() {
         console.error("Failed to restore state from hash:", err)
       }
     }
+    
+    // Load saved leads from localStorage
+    try {
+      const saved = localStorage.getItem('lead-capture-history')
+      if (saved) {
+        setSavedLeads(JSON.parse(saved))
+      }
+    } catch (err) {
+      console.error('Failed to load lead history:', err)
+    }
+    
     setIsInitialized(true)
   }, [])
   // ---------------------------------------------------
@@ -160,6 +192,18 @@ export function LeadCaptureForm() {
 
   const handleInputChange = (field: keyof Omit<LeadFormData, "tags" | "assignees" | "address">, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+
+    // Validate and collapse API section when channel ID is entered
+    if (field === 'leadChannel') {
+      if (value.trim()) {
+        setIsChannelIdValid(isValidUUID(value.trim()))
+        if (!isApiSectionCollapsed) {
+          setIsApiSectionCollapsed(true)
+        }
+      } else {
+        setIsChannelIdValid(true) // Empty is valid (no error shown)
+      }
+    }
   }
 
   const handleAddressChange = (field: keyof Address, value: string) => {
@@ -229,6 +273,8 @@ export function LeadCaptureForm() {
         if (leadId) {
           setCapturedLeadId(leadId)
           setShowActivityTracker(true) // Automatically show activity tracker
+          saveLeadToHistory(leadId, formData) // Save to history
+          setIsLeadInfoCollapsed(true) // Collapse lead info after successful submission
         }
       } else {
         setSubmitStatus("error")
@@ -248,6 +294,9 @@ export function LeadCaptureForm() {
     setResponseData(null)
     setShowActivityTracker(false)
     setCapturedLeadId(null)
+    setIsApiSectionCollapsed(false)
+    setIsLeadInfoCollapsed(false)
+    setIsChannelIdValid(true)
     window.history.replaceState(null, "", window.location.pathname)
   }
 
@@ -258,48 +307,116 @@ export function LeadCaptureForm() {
     }
   }
 
+  const saveLeadToHistory = (leadId: string, formData: LeadFormData) => {
+    const newLead: SavedLead = {
+      id: leadId,
+      name: `${formData.firstName} ${formData.lastName}`.trim() || 'Unnamed Lead',
+      email: formData.email || '',
+      timestamp: Date.now(),
+      leadChannel: formData.leadChannel
+    }
+    
+    const updatedLeads = [newLead, ...savedLeads.filter(lead => lead.id !== leadId)].slice(0, 10) // Keep last 10 leads
+    setSavedLeads(updatedLeads)
+    
+    try {
+      localStorage.setItem('lead-capture-history', JSON.stringify(updatedLeads))
+    } catch (err) {
+      console.error('Failed to save lead to history:', err)
+    }
+  }
+
+  const selectLeadFromHistory = (lead: SavedLead) => {
+    setCapturedLeadId(lead.id)
+    setShowActivityTracker(true)
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
       <Card className="shadow-lg">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-          <CardTitle className="text-3xl text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <CardTitle className="text-3xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-center">
             Lead Capture Demo
           </CardTitle>
         </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
           {/* API Configuration */}
           <div className="border-b pb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold text-sm">1</span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
+                  formData.leadChannel ? 'bg-green-100' : 'bg-blue-100'
+                }`}>
+                  <span className={`font-semibold text-sm transition-colors duration-200 ${
+                    formData.leadChannel ? 'text-green-600' : 'text-blue-600'
+                  }`}>1</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">API Configuration</h3>
               </div>
-              <h3 className="text-xl font-bold text-gray-900">API Configuration</h3>
+              {formData.leadChannel && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsApiSectionCollapsed(!isApiSectionCollapsed)}
+                  className="flex items-center gap-1 text-gray-600 hover:text-gray-800 transition-all duration-200"
+                >
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
+                    isApiSectionCollapsed ? 'rotate-0' : 'rotate-180'
+                  }`} />
+                  <span className="text-xs">{isApiSectionCollapsed ? 'Show' : 'Hide'}</span>
+                </Button>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="leadChannel">Lead Channel ID</Label>
-              <Input
-                id="leadChannel"
-                type="text"
-                value={formData.leadChannel}
-                onChange={(e) => handleInputChange("leadChannel", e.target.value)}
-                placeholder="Your Lead Channel ID"
-              />
-              <p className="text-sm text-gray-500">
-                This serves as both the endpoint identifier and authentication key
-              </p>
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              isApiSectionCollapsed ? 'max-h-0 opacity-0' : 'max-h-48 opacity-100'
+            }`}>
+              <div className="space-y-2">
+                <Input
+                  id="leadChannel"
+                  type="text"
+                  value={formData.leadChannel}
+                  onChange={(e) => handleInputChange("leadChannel", e.target.value)}
+                  placeholder="Your Lead Channel ID"
+                  className={!isChannelIdValid ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                {!isChannelIdValid && formData.leadChannel && (
+                  <p className="text-sm text-red-600">Please enter a valid UUID format</p>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Lead Information */}
-          {formData.leadChannel && (
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            formData.leadChannel ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'
+          }`}>
           <div className="border-b pb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-semibold text-sm">2</span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <span className="text-green-600 font-semibold text-sm">2</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Lead Information</h3>
               </div>
-              <h3 className="text-xl font-bold text-gray-900">Lead Information</h3>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsLeadInfoCollapsed(!isLeadInfoCollapsed)}
+                className="flex items-center gap-1 text-gray-600 hover:text-gray-800 transition-all duration-200"
+              >
+                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
+                  isLeadInfoCollapsed ? 'rotate-0' : 'rotate-180'
+                }`} />
+                <span className="text-xs">{isLeadInfoCollapsed ? 'Show' : 'Hide'}</span>
+              </Button>
             </div>
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              isLeadInfoCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'
+            }`}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
@@ -581,105 +698,98 @@ export function LeadCaptureForm() {
                 </>
               )}
             </div>
-          </div>
-          )}
 
-          {/* Assignees */}
-          {formData.leadChannel && (
-          <div className="border-b pb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-orange-600 font-semibold text-sm">2</span>
+            {/* Assignees */}
+            <div className="space-y-4 mt-6">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Assignees</Label>
+                <Button type="button" onClick={addAssignee} variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Assignee
+                </Button>
+              </div>
+              {formData.assignees.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No assignees added</p>
+              ) : (
+                <div className="space-y-4">
+                  {formData.assignees.map((assignee, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium text-gray-900">Assignee {index + 1}</h4>
+                        <Button type="button" onClick={() => removeAssignee(index)} variant="outline" size="sm">
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor={`assignee-firstName-${index}`}>First Name</Label>
+                          <Input
+                            id={`assignee-firstName-${index}`}
+                            type="text"
+                            value={assignee.first_name}
+                            onChange={(e) => updateAssignee(index, "first_name", e.target.value)}
+                            placeholder="First name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`assignee-lastName-${index}`}>Last Name</Label>
+                          <Input
+                            id={`assignee-lastName-${index}`}
+                            type="text"
+                            value={assignee.last_name}
+                            onChange={(e) => updateAssignee(index, "last_name", e.target.value)}
+                            placeholder="Last name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`assignee-email-${index}`}>Email</Label>
+                          <Input
+                            id={`assignee-email-${index}`}
+                            type="email"
+                            value={assignee.email}
+                            onChange={(e) => updateAssignee(index, "email", e.target.value)}
+                            placeholder="email@example.com"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`assignee-phone-${index}`}>Phone Number</Label>
+                          <Input
+                            id={`assignee-phone-${index}`}
+                            type="tel"
+                            value={assignee.phone_number}
+                            onChange={(e) => updateAssignee(index, "phone_number", e.target.value)}
+                            placeholder="(555) 123-4567"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`assignee-mls-${index}`}>MLS</Label>
+                          <Input
+                            id={`assignee-mls-${index}`}
+                            type="text"
+                            value={assignee.mls}
+                            onChange={(e) => updateAssignee(index, "mls", e.target.value)}
+                            placeholder="MLS name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`assignee-mlsId-${index}`}>MLS ID</Label>
+                          <Input
+                            id={`assignee-mlsId-${index}`}
+                            type="text"
+                            value={assignee.mls_id}
+                            onChange={(e) => updateAssignee(index, "mls_id", e.target.value)}
+                            placeholder="MLS ID"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Assignees</h3>
-              </div>
-              <Button type="button" onClick={addAssignee} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Assignee
-              </Button>
+              )}
             </div>
-            {formData.assignees.length === 0 ? (
-              <p className="text-sm text-gray-500 italic">No assignees added</p>
-            ) : (
-              <div className="space-y-4">
-                {formData.assignees.map((assignee, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900">Assignee {index + 1}</h4>
-                      <Button type="button" onClick={() => removeAssignee(index)} variant="outline" size="sm">
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor={`assignee-firstName-${index}`}>First Name</Label>
-                        <Input
-                          id={`assignee-firstName-${index}`}
-                          type="text"
-                          value={assignee.first_name}
-                          onChange={(e) => updateAssignee(index, "first_name", e.target.value)}
-                          placeholder="First name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`assignee-lastName-${index}`}>Last Name</Label>
-                        <Input
-                          id={`assignee-lastName-${index}`}
-                          type="text"
-                          value={assignee.last_name}
-                          onChange={(e) => updateAssignee(index, "last_name", e.target.value)}
-                          placeholder="Last name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`assignee-email-${index}`}>Email</Label>
-                        <Input
-                          id={`assignee-email-${index}`}
-                          type="email"
-                          value={assignee.email}
-                          onChange={(e) => updateAssignee(index, "email", e.target.value)}
-                          placeholder="email@example.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`assignee-phone-${index}`}>Phone Number</Label>
-                        <Input
-                          id={`assignee-phone-${index}`}
-                          type="tel"
-                          value={assignee.phone_number}
-                          onChange={(e) => updateAssignee(index, "phone_number", e.target.value)}
-                          placeholder="(555) 123-4567"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`assignee-mls-${index}`}>MLS</Label>
-                        <Input
-                          id={`assignee-mls-${index}`}
-                          type="text"
-                          value={assignee.mls}
-                          onChange={(e) => updateAssignee(index, "mls", e.target.value)}
-                          placeholder="MLS name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`assignee-mlsId-${index}`}>MLS ID</Label>
-                        <Input
-                          id={`assignee-mlsId-${index}`}
-                          type="text"
-                          value={assignee.mls_id}
-                          onChange={(e) => updateAssignee(index, "mls_id", e.target.value)}
-                          placeholder="MLS ID"
-                        />
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
+            </div>
           </div>
-          )}
-
+          </div>
 
           {/* Success Status */}
           {submitStatus === "success" && (
@@ -723,12 +833,14 @@ export function LeadCaptureForm() {
           )}
 
           {/* Action Buttons */}
-          {formData.leadChannel && (
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            formData.leadChannel ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0'
+          }`}>
           <div className="flex gap-3 pt-6">
-            <Button 
-              type="submit" 
-              className="flex-1 h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
-              disabled={isSubmitting}
+            <Button
+              type="submit"
+              className="flex-1 h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+              disabled={isSubmitting || !isChannelIdValid || !formData.leadChannel}
             >
               {isSubmitting ? (
                 <>
@@ -748,7 +860,8 @@ export function LeadCaptureForm() {
               Clear Form
             </Button>
           </div>
-          )}
+          </div>
+          </div>
         </form>
       </CardContent>
       
@@ -764,6 +877,47 @@ export function LeadCaptureForm() {
         </CardContent>
       )}
     </Card>
+    
+    {/* Lead History Floating Window */}
+    <div className="fixed top-4 right-4 w-80 max-h-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+      <div className="flex items-center justify-between p-4 border-b">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+          <History className="h-4 w-4" />
+          Lead History ({savedLeads.length})
+        </h3>
+      </div>
+        <div className="max-h-80 overflow-y-auto">
+          {savedLeads.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              <Clock className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">No leads captured yet</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {savedLeads.map((lead) => (
+                <button
+                  key={lead.id}
+                  onClick={() => selectLeadFromHistory(lead)}
+                  className="w-full p-3 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">{lead.name}</p>
+                      <p className="text-sm text-gray-500">{lead.email}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(lead.timestamp).toLocaleDateString()} {new Date(lead.timestamp).toLocaleTimeString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <Activity className="h-4 w-4 text-blue-500 ml-auto mt-1" />
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+      </div>
+    </div>
     </div>
   )
 }
