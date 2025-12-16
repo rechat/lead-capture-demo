@@ -336,7 +336,7 @@ export function LeadCaptureForm() {
       <Card className="shadow-lg">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
           <CardTitle className="text-3xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-center">
-            Lead Capture Demo
+            Rechat Lead Capture Demo
           </CardTitle>
         </CardHeader>
       <CardContent>
