@@ -24,26 +24,28 @@ interface Assignee {
 }
 
 interface Address {
-  building?: string | null
-  house_num?: string | null
-  predir?: string | null
-  qual?: string | null
-  pretype?: string | null
-  name?: string | null
-  suftype?: string | null
-  sufdir?: string | null
-  ruralroute?: string | null
-  extra?: string | null
+  street_number?: string | null
+  street_name?: string | null
   city?: string | null
-  state?: string | null
-  county?: string | null
+  state_code?: string | null
+  postal_code?: string | null
+  street_suffix?: string | null
+  unit_number?: string | null
   country?: string | null
-  postcode?: string | null
-  box?: string | null
-  unit?: string | null
-  line1?: string | null
-  line2?: string | null
-  full?: string | null
+  direction?: string | null
+  street_dir_prefix?: string | null
+  street_dir_suffix?: string | null
+  street_address?: string | null
+  full_address?: string | null
+}
+
+interface Listing {
+  price?: number | null
+  mls_number?: string | null
+  cover_image_url?: string | null
+  property: {
+    address: Address
+  }
 }
 
 interface LeadFormData {
@@ -55,7 +57,7 @@ interface LeadFormData {
   tags: string[]
   leadSource: string
   note: string
-  address: Address
+  listing: Listing
   refererUrl: string
   assignees: Assignee[]
 }
@@ -77,7 +79,11 @@ const defaultFormData: LeadFormData = {
   tags: ["Lead"],
   leadSource: "Lead Capture Demo",
   note: "",
-  address: {},
+  listing: {
+    property: {
+      address: {}
+    }
+  },
   refererUrl: "",
   assignees: [],
 }
@@ -147,6 +153,8 @@ export function LeadCaptureForm() {
   const [isApiSectionCollapsed, setIsApiSectionCollapsed] = useState(false)
   const [isLeadInfoCollapsed, setIsLeadInfoCollapsed] = useState(false)
   const [isChannelIdValid, setIsChannelIdValid] = useState(true)
+  const [manualStreetAddress, setManualStreetAddress] = useState(false)
+  const [manualFullAddress, setManualFullAddress] = useState(false)
 
   // ---------- load data from hash and localStorage on mount ----------
   useEffect(() => {
@@ -190,7 +198,83 @@ export function LeadCaptureForm() {
   }, [formData, isInitialized])
   // ------------------------------------------------------
 
-  const handleInputChange = (field: keyof Omit<LeadFormData, "tags" | "assignees" | "address">, value: string) => {
+  // ---------- auto-populate street_address and full_address ----------
+  useEffect(() => {
+    if (!isInitialized) return
+
+    const address = formData.listing.property.address
+
+    // Build street_address: [street_number] [street_dir_prefix] [street_name] [street_suffix] [street_dir_suffix] [unit_number]
+    const streetParts = [
+      address.street_number,
+      address.street_dir_prefix,
+      address.street_name,
+      address.street_suffix,
+      address.street_dir_suffix,
+      address.unit_number
+    ].filter(Boolean)
+    const newStreetAddress = streetParts.length > 0 ? streetParts.join(' ') : null
+
+    // Build full_address: [street_address], [city], [state_code] [postal_code]
+    const fullParts = []
+    if (newStreetAddress && !manualStreetAddress) {
+      fullParts.push(newStreetAddress)
+    } else if (address.street_address) {
+      fullParts.push(address.street_address)
+    }
+    if (address.city) {
+      fullParts.push(address.city)
+    }
+    const stateZip = [address.state_code, address.postal_code].filter(Boolean).join(' ')
+    if (stateZip) {
+      fullParts.push(stateZip)
+    }
+    const newFullAddress = fullParts.length > 0 ? fullParts.join(', ') : null
+
+    const updates: Partial<Address> = {}
+
+    // Only update street_address if not manually edited and value changed
+    if (!manualStreetAddress && newStreetAddress !== address.street_address) {
+      updates.street_address = newStreetAddress
+    }
+
+    // Only update full_address if not manually edited and value changed
+    if (!manualFullAddress && newFullAddress !== address.full_address) {
+      updates.full_address = newFullAddress
+    }
+
+    // Only update if there are changes to make
+    if (Object.keys(updates).length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        listing: {
+          ...prev.listing,
+          property: {
+            address: {
+              ...prev.listing.property.address,
+              ...updates
+            }
+          }
+        }
+      }))
+    }
+  }, [
+    formData.listing.property.address.street_number,
+    formData.listing.property.address.street_dir_prefix,
+    formData.listing.property.address.street_name,
+    formData.listing.property.address.street_suffix,
+    formData.listing.property.address.street_dir_suffix,
+    formData.listing.property.address.unit_number,
+    formData.listing.property.address.city,
+    formData.listing.property.address.state_code,
+    formData.listing.property.address.postal_code,
+    isInitialized,
+    manualStreetAddress,
+    manualFullAddress
+  ])
+  // -------------------------------------------------------------------
+
+  const handleInputChange = (field: keyof Omit<LeadFormData, "tags" | "assignees" | "listing">, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
 
     // Validate and collapse API section when channel ID is entered
@@ -207,11 +291,24 @@ export function LeadCaptureForm() {
   }
 
   const handleAddressChange = (field: keyof Address, value: string) => {
+    // Track manual edits to street_address and full_address
+    if (field === "street_address") {
+      setManualStreetAddress(value !== "")
+    }
+    if (field === "full_address") {
+      setManualFullAddress(value !== "")
+    }
+
     setFormData((prev) => ({
       ...prev,
-      address: {
-        ...prev.address,
-        [field]: value || null,
+      listing: {
+        ...prev.listing,
+        property: {
+          address: {
+            ...prev.listing.property.address,
+            [field]: value || null,
+          },
+        },
       },
     }))
   }
@@ -297,6 +394,8 @@ export function LeadCaptureForm() {
     setIsApiSectionCollapsed(false)
     setIsLeadInfoCollapsed(false)
     setIsChannelIdValid(true)
+    setManualStreetAddress(false)
+    setManualFullAddress(false)
     window.history.replaceState(null, "", window.location.pathname)
   }
 
@@ -332,7 +431,7 @@ export function LeadCaptureForm() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-[800px] mx-auto">
       <Card className="shadow-lg">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
           <CardTitle className="text-3xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-center">
@@ -543,72 +642,62 @@ export function LeadCaptureForm() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="building">Building</Label>
+                      <Label htmlFor="street_number">Street Number</Label>
                       <Input
-                        id="building"
+                        id="street_number"
                         type="text"
-                        value={formData.address.building || ""}
-                        onChange={(e) => handleAddressChange("building", e.target.value)}
-                        placeholder="Apt, Suite, etc."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="house_num">House Number</Label>
-                      <Input
-                        id="house_num"
-                        type="text"
-                        value={formData.address.house_num || ""}
-                        onChange={(e) => handleAddressChange("house_num", e.target.value)}
+                        value={formData.listing.property.address.street_number || ""}
+                        onChange={(e) => handleAddressChange("street_number", e.target.value)}
                         placeholder="123"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="predir">Pre-directional</Label>
+                      <Label htmlFor="street_dir_prefix">Street Direction Prefix</Label>
                       <Input
-                        id="predir"
+                        id="street_dir_prefix"
                         type="text"
-                        value={formData.address.predir || ""}
-                        onChange={(e) => handleAddressChange("predir", e.target.value)}
-                        placeholder="N, South, etc."
+                        value={formData.listing.property.address.street_dir_prefix || ""}
+                        onChange={(e) => handleAddressChange("street_dir_prefix", e.target.value)}
+                        placeholder="N, S, E, W"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="name">Street Name</Label>
+                      <Label htmlFor="street_name">Street Name</Label>
                       <Input
-                        id="name"
+                        id="street_name"
                         type="text"
-                        value={formData.address.name || ""}
-                        onChange={(e) => handleAddressChange("name", e.target.value)}
+                        value={formData.listing.property.address.street_name || ""}
+                        onChange={(e) => handleAddressChange("street_name", e.target.value)}
                         placeholder="Main"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="suftype">Street Type</Label>
+                      <Label htmlFor="street_suffix">Street Suffix</Label>
                       <Input
-                        id="suftype"
+                        id="street_suffix"
                         type="text"
-                        value={formData.address.suftype || ""}
-                        onChange={(e) => handleAddressChange("suftype", e.target.value)}
+                        value={formData.listing.property.address.street_suffix || ""}
+                        onChange={(e) => handleAddressChange("street_suffix", e.target.value)}
                         placeholder="St, Ave, Blvd"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="sufdir">Post-directional</Label>
+                      <Label htmlFor="street_dir_suffix">Street Direction Suffix</Label>
                       <Input
-                        id="sufdir"
+                        id="street_dir_suffix"
                         type="text"
-                        value={formData.address.sufdir || ""}
-                        onChange={(e) => handleAddressChange("sufdir", e.target.value)}
+                        value={formData.listing.property.address.street_dir_suffix || ""}
+                        onChange={(e) => handleAddressChange("street_dir_suffix", e.target.value)}
                         placeholder="NE, SW, etc."
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="unit">Unit</Label>
+                      <Label htmlFor="unit_number">Unit Number</Label>
                       <Input
-                        id="unit"
+                        id="unit_number"
                         type="text"
-                        value={formData.address.unit || ""}
-                        onChange={(e) => handleAddressChange("unit", e.target.value)}
+                        value={formData.listing.property.address.unit_number || ""}
+                        onChange={(e) => handleAddressChange("unit_number", e.target.value)}
                         placeholder="#5, Apt 2B"
                       />
                     </div>
@@ -617,39 +706,29 @@ export function LeadCaptureForm() {
                       <Input
                         id="city"
                         type="text"
-                        value={formData.address.city || ""}
+                        value={formData.listing.property.address.city || ""}
                         onChange={(e) => handleAddressChange("city", e.target.value)}
                         placeholder="San Francisco"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="state">State</Label>
+                      <Label htmlFor="state_code">State Code</Label>
                       <Input
-                        id="state"
+                        id="state_code"
                         type="text"
-                        value={formData.address.state || ""}
-                        onChange={(e) => handleAddressChange("state", e.target.value)}
-                        placeholder="CA or California"
+                        value={formData.listing.property.address.state_code || ""}
+                        onChange={(e) => handleAddressChange("state_code", e.target.value)}
+                        placeholder="CA"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="postcode">Postal Code</Label>
+                      <Label htmlFor="postal_code">Postal Code</Label>
                       <Input
-                        id="postcode"
+                        id="postal_code"
                         type="text"
-                        value={formData.address.postcode || ""}
-                        onChange={(e) => handleAddressChange("postcode", e.target.value)}
+                        value={formData.listing.property.address.postal_code || ""}
+                        onChange={(e) => handleAddressChange("postal_code", e.target.value)}
                         placeholder="94102"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="county">County</Label>
-                      <Input
-                        id="county"
-                        type="text"
-                        value={formData.address.county || ""}
-                        onChange={(e) => handleAddressChange("county", e.target.value)}
-                        placeholder="San Francisco"
                       />
                     </div>
                     <div className="space-y-2">
@@ -657,43 +736,43 @@ export function LeadCaptureForm() {
                       <Input
                         id="country"
                         type="text"
-                        value={formData.address.country || ""}
+                        value={formData.listing.property.address.country || ""}
                         onChange={(e) => handleAddressChange("country", e.target.value)}
                         placeholder="United States"
                       />
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="line1">Address Line 1</Label>
+                      <Label htmlFor="direction">Direction</Label>
                       <Input
-                        id="line1"
+                        id="direction"
                         type="text"
-                        value={formData.address.line1 || ""}
-                        onChange={(e) => handleAddressChange("line1", e.target.value)}
-                        placeholder="123 Main St #5"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="line2">Address Line 2</Label>
-                      <Input
-                        id="line2"
-                        type="text"
-                        value={formData.address.line2 || ""}
-                        onChange={(e) => handleAddressChange("line2", e.target.value)}
-                        placeholder="San Francisco, CA 94102"
+                        value={formData.listing.property.address.direction || ""}
+                        onChange={(e) => handleAddressChange("direction", e.target.value)}
+                        placeholder="North, South, etc."
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="full">Full Address</Label>
-                    <Input
-                      id="full"
-                      type="text"
-                      value={formData.address.full || ""}
-                      onChange={(e) => handleAddressChange("full", e.target.value)}
-                      placeholder="123 Main St #5, San Francisco, CA 94102"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="street_address">Street Address</Label>
+                      <Input
+                        id="street_address"
+                        type="text"
+                        value={formData.listing.property.address.street_address || ""}
+                        onChange={(e) => handleAddressChange("street_address", e.target.value)}
+                        placeholder="123 N Main St"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="full_address">Full Address</Label>
+                      <Input
+                        id="full_address"
+                        type="text"
+                        value={formData.listing.property.address.full_address || ""}
+                        onChange={(e) => handleAddressChange("full_address", e.target.value)}
+                        placeholder="123 N Main St, San Francisco, CA 94102"
+                      />
+                    </div>
                   </div>
                 </>
               )}

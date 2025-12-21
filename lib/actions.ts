@@ -8,26 +8,28 @@ interface Assignee {
 }
 
 interface Address {
-  building?: string | null
-  house_num?: string | null
-  predir?: string | null
-  qual?: string | null
-  pretype?: string | null
-  name?: string | null
-  suftype?: string | null
-  sufdir?: string | null
-  ruralroute?: string | null
-  extra?: string | null
+  street_number?: string | null
+  street_name?: string | null
   city?: string | null
-  state?: string | null
-  county?: string | null
+  state_code?: string | null
+  postal_code?: string | null
+  street_suffix?: string | null
+  unit_number?: string | null
   country?: string | null
-  postcode?: string | null
-  box?: string | null
-  unit?: string | null
-  line1?: string | null
-  line2?: string | null
-  full?: string | null
+  direction?: string | null
+  street_dir_prefix?: string | null
+  street_dir_suffix?: string | null
+  street_address?: string | null
+  full_address?: string | null
+}
+
+interface Listing {
+  price?: number | null
+  mls_number?: string | null
+  cover_image_url?: string | null
+  property: {
+    address: Address
+  }
 }
 
 interface LeadFormData {
@@ -39,7 +41,7 @@ interface LeadFormData {
   tags: string[]
   leadSource: string
   note: string
-  address: Address
+  listing: Listing
   refererUrl: string
   assignees: Assignee[]
 }
@@ -57,15 +59,32 @@ export async function submitLeadCapture(formData: LeadFormData) {
     if (formData.tags && formData.tags.length > 0) payload.tag = formData.tags
     if (formData.leadSource) payload.lead_source = formData.leadSource
     if (formData.note) payload.note = formData.note
-    if (formData.address && Object.keys(formData.address).length > 0) {
+
+    // Build listing object if any listing data exists
+    if (formData.listing) {
+      const listingData: Record<string, any> = {}
+
+      if (formData.listing.price) listingData.price = formData.listing.price
+      if (formData.listing.mls_number) listingData.mls_number = formData.listing.mls_number
+      if (formData.listing.cover_image_url) listingData.cover_image_url = formData.listing.cover_image_url
+
       // Only include non-null address fields
-      const addressFields = Object.fromEntries(
-        Object.entries(formData.address).filter(([_, value]) => value !== null && value !== "")
-      )
-      if (Object.keys(addressFields).length > 0) {
-        payload.address = addressFields
+      if (formData.listing.property?.address && Object.keys(formData.listing.property.address).length > 0) {
+        const addressFields = Object.fromEntries(
+          Object.entries(formData.listing.property.address).filter(([_, value]) => value !== null && value !== "")
+        )
+        if (Object.keys(addressFields).length > 0) {
+          listingData.property = {
+            address: addressFields
+          }
+        }
+      }
+
+      if (Object.keys(listingData).length > 0) {
+        payload.listing = listingData
       }
     }
+
     if (formData.refererUrl) payload.referer_url = formData.refererUrl
     if (formData.assignees && formData.assignees.length > 0) {
       // Filter out empty assignees
