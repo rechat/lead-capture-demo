@@ -35,12 +35,16 @@ interface ListingData {
 }
 
 interface SearchData {
-  query: string
-  location: string
-  min_price: number
-  max_price: number
-  bedrooms: number
-  bathrooms: number
+  url: string
+  title: string
+  minimum_bedrooms: number
+  maximum_bedrooms: number
+  minimum_bathrooms: number
+  maximum_bathrooms: number
+  minimum_price: number
+  maximum_price: number
+  property_types: string[]
+  pool: boolean
 }
 
 interface HomeValuationData {
@@ -318,24 +322,64 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
           <div className="space-y-4 border rounded-lg p-4 bg-gray-50">
             <h3 className="font-semibold text-gray-900">Search Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="search-query">Search Query</Label>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="search-url">Search URL</Label>
                 <Input
-                  id="search-query"
+                  id="search-url"
+                  type="url"
+                  value={activityData.search?.url || ""}
+                  onChange={(e) => updateSearchData("url", e.target.value)}
+                  placeholder="https://example.com/search/123"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="search-title">Search Title</Label>
+                <Input
+                  id="search-title"
                   type="text"
-                  value={activityData.search?.query || ""}
-                  onChange={(e) => updateSearchData("query", e.target.value)}
-                  placeholder="3 bedroom house"
+                  value={activityData.search?.title || ""}
+                  onChange={(e) => updateSearchData("title", e.target.value)}
+                  placeholder="Downtown 3BR Condos"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="search-location">Location</Label>
+                <Label htmlFor="min-bedrooms">Min Bedrooms</Label>
                 <Input
-                  id="search-location"
-                  type="text"
-                  value={activityData.search?.location || ""}
-                  onChange={(e) => updateSearchData("location", e.target.value)}
-                  placeholder="San Francisco, CA"
+                  id="min-bedrooms"
+                  type="number"
+                  value={activityData.search?.minimum_bedrooms || ""}
+                  onChange={(e) => updateSearchData("minimum_bedrooms", parseInt(e.target.value) || 0)}
+                  placeholder="3"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="max-bedrooms">Max Bedrooms</Label>
+                <Input
+                  id="max-bedrooms"
+                  type="number"
+                  value={activityData.search?.maximum_bedrooms || ""}
+                  onChange={(e) => updateSearchData("maximum_bedrooms", parseInt(e.target.value) || 0)}
+                  placeholder="4"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="min-bathrooms">Min Bathrooms</Label>
+                <Input
+                  id="min-bathrooms"
+                  type="number"
+                  value={activityData.search?.minimum_bathrooms || ""}
+                  onChange={(e) => updateSearchData("minimum_bathrooms", parseInt(e.target.value) || 0)}
+                  placeholder="2"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="max-bathrooms">Max Bathrooms</Label>
+                <Input
+                  id="max-bathrooms"
+                  type="number"
+                  value={activityData.search?.maximum_bathrooms || ""}
+                  onChange={(e) => updateSearchData("maximum_bathrooms", parseInt(e.target.value) || 0)}
+                  placeholder="3"
                 />
               </div>
               <div className="space-y-2">
@@ -343,8 +387,8 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
                 <Input
                   id="min-price"
                   type="number"
-                  value={activityData.search?.min_price || ""}
-                  onChange={(e) => updateSearchData("min_price", parseInt(e.target.value) || 0)}
+                  value={activityData.search?.minimum_price || ""}
+                  onChange={(e) => updateSearchData("minimum_price", parseInt(e.target.value) || 0)}
                   placeholder="500000"
                 />
               </div>
@@ -353,30 +397,32 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
                 <Input
                   id="max-price"
                   type="number"
-                  value={activityData.search?.max_price || ""}
-                  onChange={(e) => updateSearchData("max_price", parseInt(e.target.value) || 0)}
+                  value={activityData.search?.maximum_price || ""}
+                  onChange={(e) => updateSearchData("maximum_price", parseInt(e.target.value) || 0)}
                   placeholder="1000000"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bedrooms">Bedrooms</Label>
+                <Label htmlFor="property-types">Property Types (comma-separated)</Label>
                 <Input
-                  id="bedrooms"
-                  type="number"
-                  value={activityData.search?.bedrooms || ""}
-                  onChange={(e) => updateSearchData("bedrooms", parseInt(e.target.value) || 0)}
-                  placeholder="3"
+                  id="property-types"
+                  type="text"
+                  value={activityData.search?.property_types?.join(", ") || ""}
+                  onChange={(e) => updateSearchData("property_types", e.target.value.split(",").map(t => t.trim()).filter(Boolean))}
+                  placeholder="Condominium, Townhouse"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bathrooms">Bathrooms</Label>
-                <Input
-                  id="bathrooms"
-                  type="number"
-                  value={activityData.search?.bathrooms || ""}
-                  onChange={(e) => updateSearchData("bathrooms", parseInt(e.target.value) || 0)}
-                  placeholder="2"
-                />
+                <Label htmlFor="pool">Pool Required</Label>
+                <select
+                  id="pool"
+                  value={activityData.search?.pool ? "true" : "false"}
+                  onChange={(e) => updateSearchData("pool", e.target.value === "true")}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
               </div>
             </div>
           </div>

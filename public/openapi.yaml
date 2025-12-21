@@ -1,0 +1,442 @@
+openapi: 3.0.3
+info:
+  version: latest
+  title: Rechat Lead Capture API
+  description: >
+    Integrate lead-capture functionality into your website allowing for seamless
+    collection of lead data through Rechat's API.
+
+
+    Get your `lead_channel` ID through Rechat's [**Lead
+    Routing**](https://help.rechat.com/guides/crm/contacts/adding-contacts/lead-routing)
+    interface.
+  termsOfService: https://rechat.com/terms-of-service/
+  contact:
+    name: Rechat Support
+    url: https://help.rechat.com/appendix/contacting-support
+    email: support@rechat.com
+tags:
+  - name: Lead Capture
+    description: Integrate Rechat's lead capture functionality into your website.
+  - name: Activity Tracking
+    description: Track contact activities and interactions on your website.
+externalDocs:
+  description: >-
+    Find out more about integrating lead capture functionality into your
+    website.
+  url: https://help.rechat.com/appendix/brokerage-set-up/lead-capture
+servers:
+  - url: https://api.rechat.com
+paths:
+  /leads/channels/{lead_channel}/webhook:
+    post:
+      summary: Capture leads using a known lead channel ID (webhook).
+      tags:
+        - Lead Capture
+      parameters:
+        - in: path
+          name: lead_channel
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: >
+            Your lead channel ID. This serves as both the endpoint identifier
+            and authentication key.
+          example: 55f50bdd-fc93-4737-84e4-6fa5ad97745f
+      description: >
+        Integrate Rechat's lead capture functionality into your website using
+        your `lead_channel` id (which you can get through Rechat's [**Lead
+        Routing**](https://help.rechat.com/guides/crm/contacts/adding-contacts/lead-routing)
+        interface).
+      requestBody:
+        description: >
+          The Rechat API accepts lead data in JSON, XML (LTS format), or
+          URL-encoded formats. For this example, we'll use a JSON payload with
+          the following potential fields, such as those that might be captured
+          in a website form.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadCapturePayload'
+      operationId: leadCaptureIntegration
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: OK
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: 0e17f1d9-b9cb-4732-9185-fd80f990f693
+                      contact:
+                        type: string
+                        format: uuid
+                        example: 2ba538ee-3f2c-4ecb-b87e-a706b5c3e73f
+                      lead_channel:
+                        type: string
+                        format: uuid
+                        example: 55f50bdd-fc93-4737-84e4-6fa5ad97745f
+                      raw_payload:
+                        type: object
+                      parsed_payload:
+                        type: object
+                      created_at:
+                        type: number
+                        format: double
+                        description: >
+                          Unix timestamp representing creation time, including
+                          fractional seconds since the Unix epoch (January 1,
+                          1970 UTC)
+                        example: 1752247298.819
+        '204':
+          description: Successful operation (no content returned)
+
+  /leads/{lead_id}/timeline:
+    post:
+      summary: Post activity to a lead's timeline
+      tags:
+        - Activity Tracking
+      parameters:
+        - in: path
+          name: lead_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: The UUID of the lead/contact
+          example: 0e17f1d9-b9cb-4732-9185-fd80f990f693
+      description: >
+        Track contact activities such as viewing listings, creating searches,
+        signing up, and other interactions. This endpoint allows you to post
+        various activity types to a contact's timeline for better engagement tracking.
+      requestBody:
+        description: Activity data to post to the timeline
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityPayload'
+      operationId: postContactActivity
+      responses:
+        '200':
+          description: Activity posted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: Bad request - invalid activity type or missing required fields
+        '404':
+          description: Lead not found
+
+components:
+  schemas:
+    LeadCapturePayload:
+      title: Rechat Lead Capture JSON Payload
+      type: object
+      description: >
+        JSON payload for Rechat's lead capture API. All fields are optional.
+      properties:
+        first_name:
+          type: string
+          description: Contact's first name
+          example: John
+        last_name:
+          type: string
+          description: Contact's last name
+          example: Doe
+        email:
+          type: string
+          format: email
+          description: Contact's email address
+          example: john.doe@example.com
+        phone_number:
+          type: string
+          description: Contact's phone number
+          example: (555) 123-4567
+        tag:
+          type: array
+          items:
+            type: string
+          description: Array of tags for categorization
+          example:
+            - Lead
+            - Website Inquiry
+        lead_source:
+          type: string
+          description: Source of the lead
+          example: Lead Capture Demo
+        note:
+          type: string
+          description: Additional notes or messages
+          example: Interested in downtown properties
+        listing:
+          $ref: '#/components/schemas/Listing'
+        referer_url:
+          type: string
+          format: uri
+          description: Referring URL
+          example: https://example.com/property/123
+        assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assignee'
+          description: Array of assignee(s) for the lead
+
+    Listing:
+      title: Listing Information
+      type: object
+      description: Property listing information associated with the lead
+      properties:
+        price:
+          type: number
+          description: Property price
+          example: 750000
+        mls_number:
+          type: string
+          description: MLS listing number
+          example: "5039447"
+        cover_image_url:
+          type: string
+          format: uri
+          description: URL to the listing's cover image
+          example: https://example.com/images/property.jpg
+        property:
+          $ref: '#/components/schemas/Property'
+
+    Property:
+      title: Property Details
+      type: object
+      description: Detailed property information
+      properties:
+        address:
+          $ref: '#/components/schemas/Address'
+
+    Address:
+      title: Address
+      type: object
+      description: Structured address information for the property
+      properties:
+        street_number:
+          type: string
+          description: Street number
+          example: "123"
+        street_dir_prefix:
+          type: string
+          description: Street direction prefix (N, S, E, W)
+          example: N
+        street_name:
+          type: string
+          description: Street name
+          example: Main
+        street_suffix:
+          type: string
+          description: Street suffix (St, Ave, Blvd, etc.)
+          example: St
+        street_dir_suffix:
+          type: string
+          description: Street direction suffix (NE, SW, etc.)
+          example: NE
+        unit_number:
+          type: string
+          description: Unit or apartment number
+          example: "#5"
+        city:
+          type: string
+          description: City name
+          example: San Francisco
+        state_code:
+          type: string
+          description: Two-letter state code
+          example: CA
+        postal_code:
+          type: string
+          description: Postal/ZIP code
+          example: "94102"
+        country:
+          type: string
+          description: Country name
+          example: United States
+        direction:
+          type: string
+          description: General direction
+          example: North
+        street_address:
+          type: string
+          description: Complete street address (auto-generated or manual)
+          example: 123 N Main St NE #5
+        full_address:
+          type: string
+          description: Complete formatted address (auto-generated or manual)
+          example: 123 N Main St NE #5, San Francisco, CA 94102
+
+    Assignee:
+      title: Assignee
+      type: object
+      description: Agent or team member assigned to the lead
+      properties:
+        email:
+          type: string
+          format: email
+          description: Assignee's email address
+          example: agent@example.com
+        phone_number:
+          type: string
+          description: Assignee's phone number
+          example: (555) 987-6543
+        first_name:
+          type: string
+          description: Assignee's first name
+          example: Jane
+        last_name:
+          type: string
+          description: Assignee's last name
+          example: Smith
+        mls:
+          type: string
+          description: MLS board name
+          example: NTREIS
+        mls_id:
+          type: string
+          description: Assignee's MLS ID
+          example: "12345678"
+
+    ActivityPayload:
+      title: Activity Timeline Payload
+      type: object
+      required:
+        - action
+      description: >
+        Payload for posting activities to a contact's timeline. Different activity
+        types require different fields.
+      properties:
+        action:
+          type: string
+          enum:
+            - ContactViewedListing
+            - ContactSharedListing
+            - ContactFavoritedListing
+            - ContactRemovedFavoriteListing
+            - ContactValuedListing
+            - ContactSignedUp
+            - ContactLoggedIn
+            - ContactCreatedSearch
+            - ContactRemovedSearch
+            - ContactSearchedListings
+          description: The type of activity being reported
+          example: ContactViewedListing
+        listing:
+          $ref: '#/components/schemas/ActivityListing'
+        search:
+          $ref: '#/components/schemas/SearchData'
+        notes:
+          type: string
+          description: Optional notes about the activity
+          example: User showed strong interest in this property
+
+    ActivityListing:
+      title: Activity Listing Data
+      type: object
+      description: >
+        Listing information for activity tracking. Required for listing-related
+        activities (ContactViewedListing, ContactSharedListing, etc.)
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL to the listing page
+          example: https://example.com/listing/123
+        mls_number:
+          type: string
+          description: MLS listing number
+          example: "5039447"
+        mls:
+          type: string
+          description: MLS board identifier
+          example: nneren
+        cover_image_url:
+          type: string
+          format: uri
+          description: URL to the listing's cover image
+          example: https://example.com/images/property.jpg
+        price:
+          type: number
+          description: Property price
+          example: 4750000
+        property:
+          type: object
+          properties:
+            address:
+              type: object
+              properties:
+                street_address:
+                  type: string
+                  description: Street address of the property
+                  example: 25 Oakledge Drive
+
+    SearchData:
+      title: Search Data
+      type: object
+      description: >
+        Search criteria information. Required for search-related activities
+        (ContactCreatedSearch, ContactRemovedSearch, ContactSearchedListings)
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL to the saved search
+          example: https://example.com/search/123
+        title:
+          type: string
+          description: Title or name of the saved search
+          example: Downtown 3BR Condos
+        minimum_bedrooms:
+          type: number
+          description: Minimum number of bedrooms
+          example: 3
+        maximum_bedrooms:
+          type: number
+          description: Maximum number of bedrooms
+          example: 4
+        minimum_bathrooms:
+          type: number
+          description: Minimum number of bathrooms
+          example: 2
+        maximum_bathrooms:
+          type: number
+          description: Maximum number of bathrooms
+          example: 3
+        minimum_price:
+          type: number
+          description: Minimum price filter
+          example: 500000
+        maximum_price:
+          type: number
+          description: Maximum price filter
+          example: 1000000
+        property_types:
+          type: array
+          items:
+            type: string
+          description: Array of property types
+          example:
+            - Condominium
+            - Townhouse
+        pool:
+          type: boolean
+          description: Whether pool is required
+          example: true
