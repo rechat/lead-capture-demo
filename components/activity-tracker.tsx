@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, CheckCircle, AlertCircle, X, Activity } from "lucide-react"
+import { Loader2, CheckCircle, AlertCircle, X, Activity, Plus, Minus, UserCheck } from "lucide-react"
 
 type ActivityType = 
   | "ContactViewedListing"
@@ -60,9 +60,27 @@ interface ActivityData {
   notes?: string
 }
 
+interface Assignee {
+  email: string
+  phone_number: string
+  first_name: string
+  last_name: string
+  mls: string
+  mls_id: string
+}
+
 interface ActivityTrackerProps {
   leadId: string
   onClose: () => void
+}
+
+const defaultAssignee: Assignee = {
+  email: "",
+  phone_number: "",
+  first_name: "",
+  last_name: "",
+  mls: "",
+  mls_id: "",
 }
 
 export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
@@ -72,6 +90,13 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
+
+  // Reassignment state
+  const [assignees, setAssignees] = useState<Assignee[]>([])
+  const [isReassigning, setIsReassigning] = useState(false)
+  const [reassignStatus, setReassignStatus] = useState<"idle" | "success" | "error">("idle")
+  const [reassignErrorMessage, setReassignErrorMessage] = useState("")
+  const [reassignSuccessMessage, setReassignSuccessMessage] = useState("")
 
   const activityOptions: { value: ActivityType; label: string; description: string }[] = [
     { value: "ContactViewedListing", label: "Viewed Listing", description: "Contact viewed a property listing" },
@@ -176,7 +201,7 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
       if (response.ok) {
         setSubmitStatus("success")
         setSuccessMessage("Activity posted successfully!")
-        
+
         // Reset form after success
         setTimeout(() => {
           setSelectedActivity("")
@@ -193,6 +218,61 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
       setErrorMessage(`Error posting activity: ${error.message}`)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const addAssignee = () => {
+    setAssignees([...assignees, { ...defaultAssignee }])
+  }
+
+  const removeAssignee = (index: number) => {
+    setAssignees(assignees.filter((_, i) => i !== index))
+  }
+
+  const updateAssignee = (index: number, field: keyof Assignee, value: string) => {
+    setAssignees(assignees.map((assignee, i) => (i === index ? { ...assignee, [field]: value } : assignee)))
+  }
+
+  const submitReassignment = async () => {
+    if (assignees.length === 0) {
+      setReassignStatus("error")
+      setReassignErrorMessage("Please add at least one assignee")
+      return
+    }
+
+    setIsReassigning(true)
+    setReassignStatus("idle")
+    setReassignErrorMessage("")
+    setReassignSuccessMessage("")
+
+    try {
+      const response = await fetch(`https://api.rechat.com/leads/${leadId}/assignees`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(assignees),
+      })
+
+      if (response.ok) {
+        setReassignStatus("success")
+        setReassignSuccessMessage("Lead reassigned successfully!")
+
+        // Reset form after success
+        setTimeout(() => {
+          setAssignees([])
+          setReassignStatus("idle")
+        }, 2000)
+      } else {
+        const errorData = await response.json().catch(() => ({ message: "Unknown error" }))
+        setReassignStatus("error")
+        setReassignErrorMessage(`Failed to reassign lead: ${response.status} ${errorData.message || response.statusText}`)
+      }
+    } catch (error: any) {
+      setReassignStatus("error")
+      setReassignErrorMessage(`Error reassigning lead: ${error.message}`)
+    } finally {
+      setIsReassigning(false)
     }
   }
 
@@ -459,8 +539,8 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
 
         {/* Submit Button */}
         <div className="flex gap-3 pt-4">
-          <Button 
-            onClick={submitActivity} 
+          <Button
+            onClick={submitActivity}
             disabled={!selectedActivity || isSubmitting}
             className="flex-1 h-12 bg-blue-600 hover:bg-blue-700"
           >
@@ -479,6 +559,142 @@ export function ActivityTracker({ leadId, onClose }: ActivityTrackerProps) {
           <Button type="button" variant="outline" onClick={onClose} className="h-12 px-6">
             Close Tracker
           </Button>
+        </div>
+
+        {/* Reassignment Section */}
+        <div className="border-t pt-6 mt-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-indigo-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Reassign Lead</h3>
+            </div>
+            <p className="text-sm text-gray-600">
+              Reassign this lead to different agents or team members
+            </p>
+
+            {/* Assignees */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Assignees</Label>
+                <Button type="button" onClick={addAssignee} variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Assignee
+                </Button>
+              </div>
+              {assignees.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No assignees added</p>
+              ) : (
+                <div className="space-y-4">
+                  {assignees.map((assignee, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium text-gray-900">Assignee {index + 1}</h4>
+                        <Button type="button" onClick={() => removeAssignee(index)} variant="outline" size="sm">
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor={`reassign-assignee-firstName-${index}`}>First Name</Label>
+                          <Input
+                            id={`reassign-assignee-firstName-${index}`}
+                            type="text"
+                            value={assignee.first_name}
+                            onChange={(e) => updateAssignee(index, "first_name", e.target.value)}
+                            placeholder="First name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`reassign-assignee-lastName-${index}`}>Last Name</Label>
+                          <Input
+                            id={`reassign-assignee-lastName-${index}`}
+                            type="text"
+                            value={assignee.last_name}
+                            onChange={(e) => updateAssignee(index, "last_name", e.target.value)}
+                            placeholder="Last name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`reassign-assignee-email-${index}`}>Email</Label>
+                          <Input
+                            id={`reassign-assignee-email-${index}`}
+                            type="email"
+                            value={assignee.email}
+                            onChange={(e) => updateAssignee(index, "email", e.target.value)}
+                            placeholder="email@example.com"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`reassign-assignee-phone-${index}`}>Phone Number</Label>
+                          <Input
+                            id={`reassign-assignee-phone-${index}`}
+                            type="tel"
+                            value={assignee.phone_number}
+                            onChange={(e) => updateAssignee(index, "phone_number", e.target.value)}
+                            placeholder="(555) 123-4567"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`reassign-assignee-mls-${index}`}>MLS</Label>
+                          <Input
+                            id={`reassign-assignee-mls-${index}`}
+                            type="text"
+                            value={assignee.mls}
+                            onChange={(e) => updateAssignee(index, "mls", e.target.value)}
+                            placeholder="MLS name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`reassign-assignee-mlsId-${index}`}>MLS ID</Label>
+                          <Input
+                            id={`reassign-assignee-mlsId-${index}`}
+                            type="text"
+                            value={assignee.mls_id}
+                            onChange={(e) => updateAssignee(index, "mls_id", e.target.value)}
+                            placeholder="MLS ID"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Reassignment Status Messages */}
+            {reassignStatus === "success" && (
+              <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-md">
+                <CheckCircle className="h-5 w-5" />
+                <span>{reassignSuccessMessage}</span>
+              </div>
+            )}
+
+            {reassignStatus === "error" && (
+              <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-md">
+                <AlertCircle className="h-5 w-5" />
+                <span>{reassignErrorMessage}</span>
+              </div>
+            )}
+
+            {/* Reassignment Submit Button */}
+            <Button
+              onClick={submitReassignment}
+              disabled={assignees.length === 0 || isReassigning}
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700"
+            >
+              {isReassigning ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Reassigning Lead...
+                </>
+              ) : (
+                <>
+                  <UserCheck className="mr-2 h-4 w-4" />
+                  Reassign Lead
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

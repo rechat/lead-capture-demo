@@ -143,6 +143,53 @@ paths:
         '404':
           description: Lead not found
 
+  /leads/{lead_id}/assignees:
+    put:
+      summary: Reassign a lead to different agents or team members
+      tags:
+        - Lead Capture
+      parameters:
+        - in: path
+          name: lead_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: The UUID of the lead/contact to reassign
+          example: 0e17f1d9-b9cb-4732-9185-fd80f990f693
+      description: >
+        Reassign an existing lead to different agents or team members. This endpoint
+        updates the assignees for a lead, replacing the current assignees with the
+        new ones provided in the request body.
+      requestBody:
+        description: Array of assignees to assign to the lead
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Assignee'
+      operationId: reassignLead
+      responses:
+        '200':
+          description: Lead reassigned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Lead reassigned successfully
+        '400':
+          description: Bad request - invalid assignee data or missing required fields
+        '404':
+          description: Lead not found
+
 components:
   schemas:
     LeadCapturePayload:
