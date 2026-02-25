@@ -68,6 +68,7 @@ interface SavedLead {
   email: string
   timestamp: number
   leadChannel: string
+  formData: LeadFormData
 }
 
 const defaultFormData: LeadFormData = {
@@ -412,12 +413,13 @@ export function LeadCaptureForm() {
       name: `${formData.firstName} ${formData.lastName}`.trim() || 'Unnamed Lead',
       email: formData.email || '',
       timestamp: Date.now(),
-      leadChannel: formData.leadChannel
+      leadChannel: formData.leadChannel,
+      formData: { ...formData }
     }
-    
+
     const updatedLeads = [newLead, ...savedLeads.filter(lead => lead.id !== leadId)].slice(0, 10) // Keep last 10 leads
     setSavedLeads(updatedLeads)
-    
+
     try {
       localStorage.setItem('lead-capture-history', JSON.stringify(updatedLeads))
     } catch (err) {
@@ -426,6 +428,16 @@ export function LeadCaptureForm() {
   }
 
   const selectLeadFromHistory = (lead: SavedLead) => {
+    // Populate form with saved data
+    if (lead.formData) {
+      setFormData(lead.formData)
+      // Show address section if address data exists
+      const hasAddress = lead.formData.listing?.property?.address &&
+        Object.values(lead.formData.listing.property.address).some(v => v)
+      if (hasAddress) {
+        setShowAddress(true)
+      }
+    }
     setCapturedLeadId(lead.id)
     setShowActivityTracker(true)
   }
