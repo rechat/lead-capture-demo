@@ -17,13 +17,12 @@ A simple form application to test the Rechat Lead Capture API integration with a
 - `last_name` - Contact's last name  
 - `email` - Contact's email address
 - `phone_number` - Contact's phone number
-- `tag` - Custom tag for categorization
+- `tag` - Array of tags for categorization
 - `lead_source` - Source of the lead
 - `note` - Additional notes or messages
-- `address` - Property address of interest
+- `listing` - Listing of interest: `price`, `mls_number`, `cover_image_url` and a structured `property.address`
 - `referer_url` - Referring URL
-- `mlsid` - MLS listing ID
-- `agent_mlsid` - Agent's MLS ID
+- `assignees` - Agents or team members to assign the lead to
 
 ## Getting Started
 
@@ -65,13 +64,11 @@ docker run -p 3000:3000 rechat-lead-demo
 
 The form submits to: `https://api.rechat.com/leads/channels/{lead_channel}/webhook`
 
-All fields except for `source_type` are optional according to the API specification. The app will only send fields that have values.
+All fields are optional according to the API specification. The app will only send fields that have values.
 
 ## Documentation
 
-See the [`docs/`](/docs/) folder for:
-
-- [`openapi.yml`](/docs/openapi.yml) - Complete API specification for the Rechat Lead Capture API
+- [`public/openapi.yaml`](/public/openapi.yaml) - Complete API specification for the Rechat Lead Capture API. The running app serves it at `/api/spec`.
 
 ## Contact Rechat
 
